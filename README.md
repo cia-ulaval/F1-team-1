@@ -1,2 +1,2 @@
-# F1-team-2
-repo of the second team for the project F1 
+# F1-team-1
+repo of the first team for the project F1 

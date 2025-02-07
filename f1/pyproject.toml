@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "f1"
+version = "0.1.0"
+description = ""
+authors = ["TheophileBERTELOOT <thber64@ulaval.ca>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+
+[tool.poetry.scripts]
+main = "main:cli"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -9,7 +9,7 @@ Take control of a miniature racing car using only hand gestures! This project ut
 ## 🎯 Key Features
 - **EMG Signal Processing**: Converts muscle activity into driving inputs.
 - **Gesture Recognition**: Maps hand movements to car controls.
-- **Simulation Phase**: Testing in TrackMania + Pynput before real-world deployment.
+- **Simulation Phase**: Testing in TrackMania + Pynput or pyvjoy before real-world deployment.
 - **Real-World Phase**: Controlling a physical **F1 Tenth** car.
 - **Pynput Keyboard Simulation**: Sends EMG-based commands to the simulator.
 
@@ -17,7 +17,7 @@ Take control of a miniature racing car using only hand gestures! This project ut
 1. **Data Acquisition**: Collect EMG signals from the bracelet.
 2. **Signal Processing**: Filter and analyze the signals to extract meaningful gestures.
 3. **Command Mapping**: Translate gestures into acceleration, braking, and steering.
-4. **Simulation Testing**: Validate the system in TrackMania + Pynput.
+4. **Simulation Testing**: Validate the system in TrackMania + Pynput or pyvjoy.
 5. **Hardware Integration**: Deploy on the **F1 Tenth** car.
 6. **Final Testing & Optimization**: Ensure real-time responsiveness and accuracy.
 
@@ -38,8 +38,8 @@ Take control of a miniature racing car using only hand gestures! This project ut
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/gesture-car-control.git
-cd gesture-car-control
+git clone https://github.com/yourusername/F1-team-1.git
+cd F1-team-1
 
 # Install dependencies
 pip install -r requirements.txt
@@ -50,13 +50,20 @@ pip install -r requirements.txt
 python main.py
 ```
 
-## 🎮 Controls for discrete actions (Mapped from EMG Signals)
+## 🎮 Controls for discrete actions (Mapped from EMG Signals) with pynput
 | Gesture | Action |
 |---------|--------|
 | Thumb Flexion | Accelerate (Key: `W`) or (Key: `up` |
 | Wrist Rotation Left | Turn Left (Key: `A` or (Key: `left`) |
 | Wrist Rotation Right | Turn Right (Key: `D` or (Key: `right`) |
 | Relaxed Hand | Brake (Key: `S`) or (Key: `down` |
+
+## 🎮 Controls for continious actions (Mapped from EMG Signals) with pyvjoy
+| Gesture | Action |
+|---------|--------|
+| direction | pyvjoy.VJoyDevice(ID).set_axis(pyvjoy.HID_USAGE_X, steering_value)  # Contrôle de la direction |
+| acceleration | j.set_axis(pyvjoy.HID_USAGE_Y, throttle_value)  # Accélération |
+
 
 ## 📢 Future Enhancements
 - Improve gesture detection using **machine learning**.

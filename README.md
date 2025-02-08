@@ -58,7 +58,7 @@ python main.py
 | Wrist Rotation Right | Turn Right (Key: `D` or (Key: `right`) |
 | Relaxed Hand | Brake (Key: `S`) or (Key: `down` |
 
-## 🎮 Controls for continious actions (Mapped from EMG Signals) with pyvjoy
+## 🎮 Controls for continuous actions (Mapped from EMG Signals) with pyvjoy
 | Gesture | Action |
 |---------|--------|
 | direction | pyvjoy.VJoyDevice(ID).set_axis(pyvjoy.HID_USAGE_X, steering_value)  # Contrôle de la direction |

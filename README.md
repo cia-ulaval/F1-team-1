@@ -62,7 +62,7 @@ python main.py
 | Gesture | Action |
 |---------|--------|
 | direction | pyvjoy.VJoyDevice(ID).set_axis(pyvjoy.HID_USAGE_X, steering_value)  # Contrôle de la direction |
-| acceleration | j.set_axis(pyvjoy.HID_USAGE_Y, throttle_value)  # Accélération |
+| acceleration | pyvjoy.VJoyDevice(ID).set_axis(pyvjoy.HID_USAGE_Y, throttle_value)  # Accélération |
 
 
 ## 📢 Future Enhancements

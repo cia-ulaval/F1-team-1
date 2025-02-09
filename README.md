@@ -1,5 +1,5 @@
 # F1-team-1
-repo of the first team for the project F1 
+repo of the first team for the project F1
 
 # 🚗 Gesture-Controlled Racing Car with EMG
 

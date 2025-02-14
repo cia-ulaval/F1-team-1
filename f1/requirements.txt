@@ -1,2 +1,4 @@
 libemg 
 vgamepad
+pynput
+sifi_bridge_py

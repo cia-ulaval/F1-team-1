@@ -1,44 +1,40 @@
+
+from libemg import streamers, data_handler, filtering, gui, emg_predictor, feature_extractor, utils
+import keyboard
+import vgamepad as vg 
 import time
-from drive import *
-from stream import *
-import subprocess 
-from pynput.keyboard import Controller , Key
+gamepad = vg.VX360Gamepad()
+
 
 def cli():
-    print('hello world')
-
-def drive():
-    print("🚗 Départ en course...")
-    time.sleep(10)
+    streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3', 
+                                                    ecg=True, 
+                                                    imu=True, 
+                                                    ppg=True, 
+                                                    eda=True, 
+                                                    emg=True,
+                                                    filtering=True,
+                                                    emg_notch_freq=60)
+    odh = data_handler.OnlineDataHandler(smm)
     
-    accelerate()
-    print("Accélération...")
-    time.sleep(10)
+    while True:
+        data = odh.get_data(2)
 
-    steer_left()
-    print("Tourne à gauche...")
-    time.sleep(5)
-
-    steer_right()
-    print("Tourne à droite...")
-    time.sleep(5)
-
-    brake()
-    print("Freinage...")
-    time.sleep(10)
-
-    reset_controls()
-    print("Toutes les commandes sont relâchées.")
-
+        
+        print(data[0]['imu'][0])
+        print("-----------------------------")
+        
+        if data[0]['imu'][0][0] < 5000000000:
+            #pyautogui.press('right')
+            gamepad.right_trigger(255)
+            gamepad.update()
+            time.sleep(0.1)
+        if data[0]['imu'][0][1] < 500000000000:
+            #pyautogui.press('left')
+            gamepad.left_joystick(x_value=-32000 , y_value= 0)
+            gamepad.update()
+            time.sleep(0.1)
+        
+            
 if __name__ == "__main__":
     cli()
-    """
-    launch_trackmania()
-    time.sleep(10)
-    press_enter(4)
-    time.sleep(10)
-    press_enter(3)
-    press_down(1)
-    press_enter(1)
-    """
-    drive()   

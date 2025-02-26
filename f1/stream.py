@@ -2,7 +2,7 @@ from libemg import streamers, data_handler, filtering, gui, emg_predictor, featu
 
 WINDOW_SIZE = 200 # 40
 WINDOW_INC = 20
-CLASSES = [0, 1, 2, 3, 4]
+CLASSES = [0, 1, 2, 3 ,4]
 REPS = [0, 1, 2, 3, 4]
 STAGE = 2
 

@@ -1,4 +1,4 @@
-from movement import Movement
+from movements import Movement
 
 class_map = {
     0: Movement.FORWARD,
@@ -7,7 +7,7 @@ class_map = {
     3: Movement.STOP
 }
 
-def map_class_to_movement(predicted_class: int) -> Movement:
+def map_class_to_action(predicted_class: int) -> Movement:
     """
     Takes the integer label from the classifier and 
     returns the corresponding Movement enum value.

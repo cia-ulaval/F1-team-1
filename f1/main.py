@@ -7,8 +7,8 @@ from libemg import streamers
 
 from gesture_mapper import map_class_to_action
 
-from vgamepad_controller import handle_vgamepad_action
-from ros_controller import create_ros_node, shutdown_ros_node
+from vgamepad_controller import handle_pyautogui_action
+#from ros2_controller import create_ros_node, shutdown_ros_node
 
 def main():
     parser = argparse.ArgumentParser(
@@ -66,9 +66,10 @@ def main():
         print(f"Predicted label={pred_label} => action={action}")
 
         if args.mode == "vgamepad":
-            handle_vgamepad_action(action)
+            handle_pyautogui_action(action)
         elif args.mode == "ros":
-            ros_node.publish_action(action)
+            #ros_node.publish_action(action)
+            pass
 
     print(f"Running in {args.mode.upper()} mode. Press Ctrl+C to stop.\n")
 

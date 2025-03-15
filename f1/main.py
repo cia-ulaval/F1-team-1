@@ -3,6 +3,8 @@ from libemg import streamers, data_handler, filtering, gui, emg_predictor, featu
 import keyboard
 import vgamepad as vg 
 import time
+
+from drive import accelerate, brake, steer_left, steer_right, reset_controls
 gamepad = vg.VX360Gamepad()
 
 
@@ -24,17 +26,32 @@ def cli():
         print(data[0]['imu'][0])
         print("-----------------------------")
         
-        if data[0]['imu'][0][0] < 5000000000:
+        if data[0]['imu'][0][0] >= 6.55:
             #pyautogui.press('right')
-            gamepad.right_trigger(255)
-            gamepad.update()
+            #gamepad.right_trigger(255)
+            #gamepad.update()
+
+            accelerate()
+        if data[0]['imu'][0][0] <= -6.55:
+            #pyautogui.press('right')
+            #gamepad.right_trigger(255)
+            #gamepad.update()
+
+            brake()
+
+        if data[0]['imu'][0][2] >= 7.55:
+            
+            steer_right()
+        if data[0]['imu'][0][2] <= -7.55:
+            steer_left()
+           
+        else:
             time.sleep(0.1)
-        if data[0]['imu'][0][1] < 500000000000:
-            #pyautogui.press('left')
-            gamepad.left_joystick(x_value=-32000 , y_value= 0)
-            gamepad.update()
-            time.sleep(0.1)
-        
+            reset_controls()
+            
+
+
+    
             
 if __name__ == "__main__":
     cli()

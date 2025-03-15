@@ -15,11 +15,13 @@ def brake():
 
 def steer_left():
     """Tourne le joystick gauche à gauche"""
+    accelerate()
     gamepad.left_joystick(x_value=-32768, y_value=0)  # -32768 = Complètement à gauche
     gamepad.update()
 
 def steer_right():
     """Tourne le joystick gauche à droite"""
+    accelerate()
     gamepad.left_joystick(x_value=32767, y_value=0)  # 32767 = Complètement à droite
     gamepad.update()
 

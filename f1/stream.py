@@ -2,8 +2,8 @@ from libemg import streamers, data_handler, filtering, gui, emg_predictor, featu
 
 WINDOW_SIZE = 200 # 40
 WINDOW_INC = 20
-CLASSES = [0, 1, 2, 3 ,4]
-REPS = [0, 1, 2, 3, 4]
+CLASSES = [0, 5, 7 , 15, 16]
+REPS = [0, 1, 2, 3, 4 , 5]
 STAGE = 2
 
 def testband():
@@ -14,13 +14,26 @@ def testband():
 
 def preparemodel():
     regex_filters = [
+
     data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
-    data_handler.RegexFilter(left_bound = "_R_", right_bound="_emg.csv", values = [str(i) for i in CLASSES], description='classes')
+    data_handler.RegexFilter(left_bound = "_R_", right_bound="_emg.csv", values = [str(i) for i in CLASSES], description='classes'),
+
+    data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
+    data_handler.RegexFilter(left_bound = "_R_", right_bound="_imu.csv", values = [str(i) for i in CLASSES], description='classes'),
+
+    data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
+    data_handler.RegexFilter(left_bound = "_R_", right_bound="_ppg.csv", values = [str(i) for i in CLASSES], description='classes')
 ]
+    """
     odh = data_handler.OfflineDataHandler()
-    odh.get_data(folder_location="data/S" + str(0) + "/", regex_filters= regex_filters)
-    
+    odh.get_data(folder_location="data/S" + str(0) + "/", regex_filters= regex_filters)"
+    """
+
+    odh = data_handler.OfflineDataHandler()
+    for i in range(0, 8):
+        odh.get_data(folder_location="data/S" + str(i) + "/", regex_filters= regex_filters)
     windows, metadata = odh.parse_windows(WINDOW_SIZE,WINDOW_INC)
+
     fe = feature_extractor.FeatureExtractor()
     feature_dic = {}
     feature_dic['training_features'] = fe.extract_feature_group("HTD", windows)
@@ -28,10 +41,22 @@ def preparemodel():
     model = emg_predictor.EMGClassifier("LDA")
     model.fit(feature_dictionary=feature_dic)
     model.add_velocity(windows, metadata['classes'])
-    streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3', ecg=True, imu=True, ppg=True, eda=True, emg=True,filtering=True,emg_notch_freq=60)
+
+    return model
+
+"""
+    streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3', ecg=False, imu=True, ppg=False, eda=False, emg=False,filtering=True,emg_notch_freq=60)
     odh = data_handler.OnlineDataHandler(smm)
     feature_list = feature_extractor.FeatureExtractor().get_feature_groups()['HTD']
     oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=True)
+    oc.run(True)"
+"""
+
+def testmodel():
+    streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3', ecg=True, imu=True, ppg=True, eda=True, emg=True,filtering=True,emg_notch_freq=60)
+    odh = data_handler.OnlineDataHandler(smm)
+    feature_list = feature_extractor.FeatureExtractor().get_feature_groups()['HTD']
+    oc = emg_predictor.OnlineEMGClassifier(preparemodel(), WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=True)
     oc.run(True)
     
 
@@ -60,5 +85,7 @@ if __name__ == "__main__":
         preparemodel()
     if STAGE == 2:
         testband()
+    if STAGE == 3:
+        testmodel()
 
     

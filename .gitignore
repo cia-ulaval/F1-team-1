@@ -172,3 +172,4 @@ cython_debug/
 .pypirc
 
 data/
+off_data/

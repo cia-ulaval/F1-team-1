@@ -65,18 +65,20 @@ def collectdata():
     odh = data_handler.OnlineDataHandler(smm)
     #odh is your data
     # odh.visualize_channels(list(range(8)), num_samples=10000)
+
+    for i in range(0, 6):
+        args = {
+            "media_folder": "images/",
+            "data_folder": "data/S" + str(i) + "/",
+            "num_reps": 6,
+            "rep_time": 5,
+            "rest_time": 1,
+            "auto_advance": True
+        }
+        guii = gui.GUI(odh, args=args, debug=False)
+        guii.download_gestures([0,1,2,3,4,5], "images/")
+        guii.start_gui()
     
-    args = {
-        "media_folder": "images/",
-        "data_folder": "data/S" + str(0) + "/",
-        "num_reps": 6,
-        "rep_time": 5,
-        "rest_time": 1,
-        "auto_advance": True
-    }
-    guii = gui.GUI(odh, args=args, debug=False)
-    guii.download_gestures([1,2,3,4,5], "images/")
-    guii.start_gui()
 
 if __name__ == "__main__":
     if STAGE == 0:

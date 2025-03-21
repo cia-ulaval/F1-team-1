@@ -4,7 +4,7 @@ WINDOW_SIZE = 200 # 40
 WINDOW_INC = 20
 CLASSES = [0, 5, 7 , 15, 16]
 REPS = [0, 1, 2, 3, 4 , 5]
-STAGE = 2
+STAGE = 0
 
 def testband():
     streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3',  ecg=True,  imu=True, ppg=True, eda=True, emg=True,filtering=True,emg_notch_freq=60)
@@ -66,18 +66,18 @@ def collectdata():
     #odh is your data
     # odh.visualize_channels(list(range(8)), num_samples=10000)
 
-    for i in range(0, 6):
-        args = {
-            "media_folder": "images/",
-            "data_folder": "data/S" + str(i) + "/",
-            "num_reps": 6,
-            "rep_time": 5,
-            "rest_time": 1,
-            "auto_advance": True
-        }
-        guii = gui.GUI(odh, args=args, debug=False)
-        guii.download_gestures([0,1,2,3,4,5], "images/")
-        guii.start_gui()
+    
+    args = {
+        "media_folder": "images/",
+        "data_folder": "data/S" + str("0") + "/",
+        "num_reps": 6,
+        "rep_time": 5,
+        "rest_time": 3,
+        "auto_advance": True
+    }
+    guii = gui.GUI(odh, args=args, debug=False)
+    guii.download_gestures([1,2,3,4,5], "images/")
+    guii.start_gui()
     
 
 if __name__ == "__main__":

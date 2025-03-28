@@ -7,7 +7,7 @@ from os import walk
 
 WINDOW_SIZE = 200 # 40
 WINDOW_INC = 20
-CLASSES = [0, 5, 7 , 15, 16]
+CLASSES = [0, 1, 2 , 3, 4]
 REPS = [0, 1, 2, 3, 4 , 5]
 STAGE = 0
 
@@ -43,7 +43,7 @@ def preparemodel():
     feature_dic = {}
     feature_dic['training_features'] = fe.extract_feature_group("HTD", windows)
     feature_dic['training_labels'] = metadata['classes']
-    model = emg_predictor.EMGClassifier("LDA")
+    model = emg_predictor.EMGClassifier("")
     model.fit(feature_dictionary=feature_dic)
     model.add_velocity(windows, metadata['classes'])
 

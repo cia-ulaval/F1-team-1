@@ -18,25 +18,45 @@ def testband():
     odh.visualize(num_samples=10000)
 
 def preparemodel():
-    regex_filters = [
+#     regex_filters = [
 
-    data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
-    data_handler.RegexFilter(left_bound = "_R_", right_bound="_emg.csv", values = [str(i) for i in CLASSES], description='classes'),
+#     data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
+#     data_handler.RegexFilter(left_bound = "_R_", right_bound="_emg.csv", values = [str(i) for i in CLASSES], description='classes'),
 
-    data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
-    data_handler.RegexFilter(left_bound = "_R_", right_bound="_imu.csv", values = [str(i) for i in CLASSES], description='classes'),
+#     data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
+#     data_handler.RegexFilter(left_bound = "_R_", right_bound="_imu.csv", values = [str(i) for i in CLASSES], description='classes'),
 
-    data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
-    data_handler.RegexFilter(left_bound = "_R_", right_bound="_ppg.csv", values = [str(i) for i in CLASSES], description='classes')
-]
-    """
+#     data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
+#     data_handler.RegexFilter(left_bound = "_R_", right_bound="_ppg.csv", values = [str(i) for i in CLASSES], description='classes')
+# ]
+
+    emg_regex_filters = [
+        data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
+        data_handler.RegexFilter(left_bound = "_R_", right_bound="_emg.csv", values = [str(i) for i in CLASSES], description='classes')
+
+    ]
+
+    imu_regex_filters = [
+        data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
+        data_handler.RegexFilter(left_bound = "_R_", right_bound="_imu.csv", values = [str(i) for i in CLASSES], description='classes')
+    ]
+
+    ppg_regex_filters = [
+        data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
+        data_handler.RegexFilter(left_bound = "_R_", right_bound="_ppg.csv", values = [str(i) for i in CLASSES], description='classes')
+    ]
+
+    
+    
     odh = data_handler.OfflineDataHandler()
-    odh.get_data(folder_location="data/S" + str(0) + "/", regex_filters= regex_filters)"
-    """
+    odh.get_data(folder_location="data/S" + str(0) + "/", regex_filters=emg_regex_filters)
+    odh.get_data(folder_location="data/S" + str(0) + "/", regex_filters=imu_regex_filters)
+    odh.get_data(folder_location="data/S" + str(0) + "/", regex_filters=ppg_regex_filters)
+    
 
-    odh = data_handler.OfflineDataHandler()
-    for i in range(0, 5):
-        odh.get_data(folder_location="data/S" + str(i) + "/", regex_filters= regex_filters)
+    # odh = data_handler.OfflineDataHandler()
+    # for i in range(0, 5):
+    #     odh.get_data(folder_location="data/S" + str(i) + "/", regex_filters= regex_filters)
     windows, metadata = odh.parse_windows(WINDOW_SIZE,WINDOW_INC)
 
     fe = feature_extractor.FeatureExtractor()

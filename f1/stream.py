@@ -9,7 +9,7 @@ WINDOW_SIZE = 200 # 40
 WINDOW_INC = 20
 CLASSES = [0, 1, 2 , 3, 4]
 REPS = [0, 1, 2, 3, 4 , 5]
-STAGE = 0
+STAGE = 1
 
 def testband():
     streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3',  ecg=True,  imu=True, ppg=True, eda=True, emg=True,filtering=True,emg_notch_freq=60)
@@ -35,7 +35,7 @@ def preparemodel():
     """
 
     odh = data_handler.OfflineDataHandler()
-    for i in range(0, 7):
+    for i in range(0, 5):
         odh.get_data(folder_location="data/S" + str(i) + "/", regex_filters= regex_filters)
     windows, metadata = odh.parse_windows(WINDOW_SIZE,WINDOW_INC)
 

@@ -1,4 +1,9 @@
 from libemg import streamers, data_handler, filtering, gui, emg_predictor, feature_extractor, utils
+import os
+import json
+import time
+from os import walk
+
 
 WINDOW_SIZE = 200 # 40
 WINDOW_INC = 20
@@ -61,9 +66,71 @@ def testmodel():
     
 
 class CustomGui(gui.GUI):
-    def __init__(self, odh, args, width , height , gesture_width , gesture_height , clean_up_on_call , debug=False):
-        super().__init__(odh, args, debug)
-        self.model = preparemodel()
+    def __init__(self, 
+                 online_data_handler,
+                 args={'media_folder': 'images/', 'data_folder':'data/', 'num_reps': 3, 'rep_time': 5, 'rest_time': 3, 'auto_advance': True},
+                 width=1920,
+                 height=1080,
+                 debug=False,
+                 gesture_width=500,
+                 gesture_height=500,
+                 clean_up_on_kill=False):
+        super().__init__(
+            online_data_handler=online_data_handler,
+            args=args,
+            width=width,
+            height=height,
+            debug=debug,
+            gesture_width=gesture_width,
+            gesture_height=gesture_height,
+            clean_up_on_kill=clean_up_on_kill
+        )
+    
+    def download_gestures(self, gesture_ids, folder, download_imgs=True, download_gifs=False, redownload=False):
+        """Downloads gesture images from repository"""
+        import requests
+        from pathlib import Path
+
+        # Define repository paths
+        git_url = "https://raw.githubusercontent.com/cia-ulaval/F1-team-1/main/f1/"
+        gesture_data = {
+            "1": "Hand_Open",
+            "2": "Hand_Close",
+            "3": "Wrist_Flexion",
+            "4": "Wrist_Extension",
+            "5": "Wrist_Pronation"
+        }
+
+        # Create output directory if it doesn't exist
+        folder_path = Path(folder)
+        folder_path.mkdir(parents=True, exist_ok=True)
+
+        # Download images
+        for id in gesture_ids:
+            try:
+                idx = str(id)
+                if idx not in gesture_data:
+                    print(f"Warning: Gesture ID {id} not found in gesture list")
+                    continue
+
+                img_file = gesture_data[idx] + ".jpg"
+                img_path = folder_path / img_file
+                img_url = git_url + "images/" + img_file
+
+                if download_imgs and (not img_path.exists() or redownload):
+                    print(f"Downloading gesture {id}: {img_file}")
+                    response = requests.get(img_url)
+                    
+                    if response.status_code == 200:
+                        with open(img_path, 'wb') as f:
+                            f.write(response.content)
+                        print(f"Successfully downloaded {img_file}")
+                    else:
+                        print(f"Failed to download {img_file}: HTTP {response.status_code}")
+
+            except Exception as e:
+                print(f"Error downloading gesture {id}: {str(e)}")
+                continue
 
 def collectdata():
     streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3', ecg=True, imu=True, ppg=True, eda=True, emg=True,filtering=True,emg_notch_freq=60)
@@ -80,7 +147,7 @@ def collectdata():
         "rest_time": 3,
         "auto_advance": True
     }
-    guii = gui.GUI(odh, args=args, debug=False)
+    guii = CustomGui(odh, args=args, debug=False)
     guii.download_gestures([1,2,3,4,5], "images/")
     guii.start_gui()
     
@@ -230,44 +297,4 @@ class GUI:
             if 'streamer' in self.args.keys():
                 self.args['streamer'].signal.set()
             time.sleep(3)
-    
-    def download_gestures(self, gesture_ids, folder, download_imgs=True, download_gifs=False, redownload=False):
-        """
-        Downloads gesture images (either .png or .gif) from: 
-        https://github.com/libemg/LibEMGGestures.
-        
-        This function dowloads gestures using the "curl" command. 
 
-        Parameters
-        ----------
-        gesture_ids: list
-            A list of indexes corresponding to the gestures you want to download. A list of indexes and their respective 
-            gesture can be found at https://github.com/libemg/LibEMGGestures.
-        folder: string
-            The output folder where the downloaded gestures will be saved.
-        download_gif: bool (optional), default=False
-            If True, the assocaited GIF will be downloaded.
-        redownload: bool (optional), default=False
-            If True, all files will be re-downloaded (regardless if they are already downloaed).
-        """
-        git_url = "https://github.com/cia-ulaval/F1-team-1/tree/deoth"
-        img_folder = "Images/"
-        json_file = "gesture_list.json"
-        curl_commands = "curl --create-dirs" + " -O --output-dir " + folder + " "
-
-        files = next(walk(folder), (None, None, []))[2]
-
-        # Check JSON file exists
-        print("Checking if gesture list exists)")  
-        if not json_file in files or redownload:
-            os.system(curl_commands + git_url + json_file)
-
-        json_file = json.load(open(folder + json_file))
-        print(json_file)
-
-        for id in gesture_ids:
-            print("Downloading gesture: " + str(id))
-            idx = str(id)
-            img_file = json_file[idx] + ".jpg"
-            if download_imgs and (not img_file in files or redownload):
-                os.system(curl_commands + git_url + img_folder + img_file)

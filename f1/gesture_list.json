@@ -1,0 +1,8 @@
+{
+    "num_gestures": 5,
+    "1": "Thumbs_Flexion",
+    "2": "Wrist_Left_Rotation",
+    "3": "Wrist_Right_Rotation",
+    "4": "Thumbs_Up",
+    "5": "Hand_Open"
+}

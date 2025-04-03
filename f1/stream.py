@@ -52,6 +52,14 @@ def preparemodel():
     odh.get_data(folder_location="data/S" + str(0) + "/", regex_filters=emg_regex_filters)
     odh.get_data(folder_location="data/S" + str(0) + "/", regex_filters=imu_regex_filters)
     odh.get_data(folder_location="data/S" + str(0) + "/", regex_filters=ppg_regex_filters)
+
+    #Pre-processing
+    #a standardization filter(EMG , IMU , PPG)
+    #EMG data, application of a 60Hz notch filter + 20-450Hz band-pass filter
+    #PPG data, application of a 0.66-3Hz band-pass filter +  a Principal Component Analysis (PCA) is applied to the Infrared and Red channels
+    #IMU data, the approach uses the derivative of the 3-axis accelerometer data from the standardized signals
+
+
     
 
     # odh = data_handler.OfflineDataHandler()
@@ -60,6 +68,10 @@ def preparemodel():
     windows, metadata = odh.parse_windows(WINDOW_SIZE,WINDOW_INC)
 
     fe = feature_extractor.FeatureExtractor()
+    #features to extract and concatenate
+    # MPK , WENG , MEAN for PPG 
+    # WLPHASOR , DTFR , WENG ,RMSPHASOR for IMU
+    # LS4 feature set for EMG
     feature_dic = {}
     feature_dic['training_features'] = fe.extract_feature_group("HTD", windows)
     feature_dic['training_labels'] = metadata['classes']

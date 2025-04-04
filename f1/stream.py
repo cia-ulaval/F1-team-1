@@ -4,6 +4,9 @@ import json
 import time
 from os import walk
 
+import numpy as np
+from libemg.offline_metrics import OfflineMetrics
+
 
 WINDOW_SIZE = 200 # 40
 WINDOW_INC = 20
@@ -17,18 +20,7 @@ def testband():
     #odh is your data
     odh.visualize(num_samples=10000)
 
-def preparemodel():
-#     regex_filters = [
-
-#     data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
-#     data_handler.RegexFilter(left_bound = "_R_", right_bound="_emg.csv", values = [str(i) for i in CLASSES], description='classes'),
-
-#     data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
-#     data_handler.RegexFilter(left_bound = "_R_", right_bound="_imu.csv", values = [str(i) for i in CLASSES], description='classes'),
-
-#     data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
-#     data_handler.RegexFilter(left_bound = "_R_", right_bound="_ppg.csv", values = [str(i) for i in CLASSES], description='classes')
-# ]
+def prepareemgmodel():
 
     emg_regex_filters = [
         data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
@@ -36,6 +28,57 @@ def preparemodel():
 
     ]
 
+    odh_emg = data_handler.OfflineDataHandler()
+    for i in range(0, 5):
+        odh_emg.get_data(folder_location="data/S" + str(i) + "/", regex_filters= emg_regex_filters)
+    emg_windows, metadata = odh_emg.parse_windows(WINDOW_SIZE,WINDOW_INC)
+        
+    
+    #Pre-processing
+    #a standardization filter(EMG , IMU , PPG)
+    #EMG data, application of a 60Hz notch filter + 20-450Hz band-pass filter
+    
+    fi_emg = filtering.Filter(2000)
+    
+    standardization_filter = { "name": "standardization" , }
+    emg_notch_filter = { "name": "notch", "cutoff": 60, "bandwidth": 3}
+    emg_bandpass_filter = { "name":"bandpass", "cutoff": [20, 450], "order": 4}
+
+    fi_emg.install_filters(standardization_filter)
+    fi_emg.install_filters(emg_notch_filter)
+    fi_emg.install_filters(emg_bandpass_filter)
+
+    
+
+
+    fe = feature_extractor.FeatureExtractor()
+    # LS4 feature set for EMG
+    feature_dic = {}
+    emg_features = fe.extract_feature_group("LS4", emg_windows)
+    #print("EMG features: ", emg_features)
+    print("EMG feature LS4 shapes: ", emg_features['LS'].shape)
+    print("EMG feature MFL shapes: ", emg_features['MFL'].shape)
+    print("EMG features MSR: ", emg_features['MSR'].shape)
+
+    
+    feature_dic['training_features'] = emg_features
+    feature_dic['training_labels'] = metadata['classes']
+
+
+    model = emg_predictor.EMGClassifier("LDA")
+    model.fit(feature_dictionary=feature_dic)
+    model.add_velocity(emg_windows, metadata['classes'])
+
+
+"""
+    streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3', ecg=False, imu=True, ppg=False, eda=False, emg=False,filtering=True,emg_notch_freq=60)
+    odh = data_handler.OnlineDataHandler(smm)
+    feature_list = feature_extractor.FeatureExtractor().get_feature_groups()['HTD']
+    oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=True)
+    oc.run(True)"
+"""
+
+def prepareemgimuppgmodel():
     imu_regex_filters = [
         data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
         data_handler.RegexFilter(left_bound = "_R_", right_bound="_imu.csv", values = [str(i) for i in CLASSES], description='classes')
@@ -47,11 +90,18 @@ def preparemodel():
     ]
 
     
-    
-    odh = data_handler.OfflineDataHandler()
-    odh.get_data(folder_location="data/S" + str(0) + "/", regex_filters=emg_regex_filters)
-    odh.get_data(folder_location="data/S" + str(0) + "/", regex_filters=imu_regex_filters)
-    odh.get_data(folder_location="data/S" + str(0) + "/", regex_filters=ppg_regex_filters)
+
+    odh_imu = data_handler.OfflineDataHandler()
+    for i in range(0, 5):
+        odh_imu.get_data(folder_location="data/S" + str(i) + "/", regex_filters= imu_regex_filters)
+        
+    imu_windows, metadata = odh_imu.parse_windows(WINDOW_SIZE,WINDOW_INC)
+
+    odh_ppg = data_handler.OfflineDataHandler()
+    for i in range(0, 5):
+        odh_ppg.get_data(folder_location="data/S" + str(i) + "/", regex_filters= ppg_regex_filters)
+        
+    ppg_windows, metadata = odh_ppg.parse_windows(WINDOW_SIZE,WINDOW_INC)
 
     #Pre-processing
     #a standardization filter(EMG , IMU , PPG)
@@ -59,35 +109,45 @@ def preparemodel():
     #PPG data, application of a 0.66-3Hz band-pass filter +  a Principal Component Analysis (PCA) is applied to the Infrared and Red channels
     #IMU data, the approach uses the derivative of the 3-axis accelerometer data from the standardized signals
 
-
+    # fi_emg = filtering.Filter(2000)
     
+    # standardization_filter = { "name": "standardization"}
+    # emg_notch_filter = { "name": "notch", "cutoff": 60}
+    # emg_bandpass_filter = { "name": "bandpass", "cutoff": [20, 450]}
 
-    # odh = data_handler.OfflineDataHandler()
-    # for i in range(0, 5):
-    #     odh.get_data(folder_location="data/S" + str(i) + "/", regex_filters= regex_filters)
-    windows, metadata = odh.parse_windows(WINDOW_SIZE,WINDOW_INC)
+    # fi_emg.install_filters(standardization_filter)
+    # fi_emg.install_filters(emg_notch_filter)
+    # fi_emg.install_filters(emg_bandpass_filter)
+
+    # fi_ppg = filtering.Filter(100)
+    # ppg_bandpass_filter = { "name": "bandpass", "cutoff": [0.66, 3]}
+    # pca_filter = { "name": "pca", "num_components": 2}
+    # fi_ppg.install_filters(standardization_filter)
+    # fi_ppg.install_filters(ppg_bandpass_filter)
+
+    # fi_imu = filtering.Filter(100)
 
     fe = feature_extractor.FeatureExtractor()
-    #features to extract and concatenate
-    # MPK , WENG , MEAN for PPG 
-    # WLPHASOR , DTFR , WENG ,RMSPHASOR for IMU
-    # LS4 feature set for EMG
-    feature_dic = {}
-    feature_dic['training_features'] = fe.extract_feature_group("HTD", windows)
-    feature_dic['training_labels'] = metadata['classes']
-    model = emg_predictor.EMGClassifier("")
-    model.fit(feature_dictionary=feature_dic)
-    model.add_velocity(windows, metadata['classes'])
+    imu_features = fe.extract_features(["WLPHASOR" , "DFTR" , "WENG" ,"RMSPHASOR"], imu_windows)
+    #print("IMU features: ", imu_features)
+    print("IMU feature WLPHASOR shapes: ", imu_features['WLPHASOR'].shape)
+    print("IMU feature DFTR shapes: ", imu_features['DFTR'].shape)
+    print("IMU feature WENG shapes: ", imu_features['WENG'].shape)
+    print("IMU feature RMSPHASOR shapes: ", imu_features['RMSPHASOR'].shape)
+    ppg_features = fe.extract_features(["MPK", "WENG", "MEAN"], ppg_windows)
+    #print("PPG features: ", ppg_features)
+    print("PPG feature MPK shapes: ", ppg_features['MPK'].shape)
+    print("PPG feature WENG shapes: ", ppg_features['WENG'].shape)
+    print("PPG feature MEAN shapes: ", ppg_features['MEAN'].shape)
+    #print("PPG features: ", ppg_features)
 
-    return model
+    import numpy as np
+    combined_features = np.hstack([
+        emg_features['features'],  # Extract 'features' from each dictionary
+        imu_features['features'],
+        ppg_features['features']
+    ])
 
-"""
-    streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3', ecg=False, imu=True, ppg=False, eda=False, emg=False,filtering=True,emg_notch_freq=60)
-    odh = data_handler.OnlineDataHandler(smm)
-    feature_list = feature_extractor.FeatureExtractor().get_feature_groups()['HTD']
-    oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=True)
-    oc.run(True)"
-"""
 
 def testmodel():
     streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3', ecg=True, imu=True, ppg=True, eda=True, emg=True,filtering=True,emg_notch_freq=60)
@@ -188,7 +248,7 @@ if __name__ == "__main__":
     if STAGE == 0:
         collectdata()
     if STAGE == 1:
-        preparemodel()
+        prepareemgmodel()
     if STAGE == 2:
         testband()
     if STAGE == 3:

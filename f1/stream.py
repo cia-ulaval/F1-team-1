@@ -1,3 +1,5 @@
+from curses import window
+from typing import final
 from libemg import streamers, data_handler, filtering, gui, emg_predictor, feature_extractor, utils
 import os
 import json
@@ -28,16 +30,129 @@ def prepareemgmodel():
 
     ]
 
-    odh_emg = data_handler.OfflineDataHandler()
-    for i in range(0, 5):
-        odh_emg.get_data(folder_location="data/S" + str(i) + "/", regex_filters= emg_regex_filters)
-    emg_windows, metadata = odh_emg.parse_windows(WINDOW_SIZE,WINDOW_INC)
+    
+
+    # for i in range(0, 5):
+    #     odh_emg.get_data(folder_location="data/S" + str(i) + "/", regex_filters= emg_regex_filters)
+    #     emg_windows, metadata = odh_emg.parse_windows(WINDOW_SIZE,WINDOW_INC)
+    # print("emg_windows: ", emg_windows)
+    # print("metadata: ", metadata)
         
     
     #Pre-processing
     #a standardization filter(EMG , IMU , PPG)
     #EMG data, application of a 60Hz notch filter + 20-450Hz band-pass filter
     
+    
+    #print("EMG features: ", emg_features)
+    feature_dic_0 , windows_0  = get_training_data(folder_location="data/S" + str("0") + "/", regex_filters= emg_regex_filters)
+    feature_dic_1 , windows_1 = get_training_data(folder_location="data/S" + str("1") + "/", regex_filters= emg_regex_filters)
+    feature_dic_2 , windows_2 = get_training_data(folder_location="data/S" + str("2") + "/", regex_filters= emg_regex_filters)
+    feature_dic_3 , windows_3 = get_training_data(folder_location="data/S" + str("3") + "/", regex_filters= emg_regex_filters)
+    feature_dic_4 , windows_4 = get_training_data(folder_location="data/S" + str("4") + "/", regex_filters= emg_regex_filters)
+
+    print("windows_0 shape: \n", windows_0.shape)
+    print("windows_1 shape: \n", windows_1.shape)
+    print("windows_2 shape: \n", windows_2.shape)
+    print("windows_3 shape: \n", windows_3.shape)
+    print("windows_4 shape: \n", windows_4.shape)
+
+    windows = np.concatenate((
+        windows_0,
+        windows_1,
+        windows_2,
+        windows_3,
+        windows_4
+    ))
+    print("windows shape: \n", windows.shape)
+
+    # print("LS feature for feature_dic_0: \n", type(feature_dic_0["training_features"]["LS"]))
+    # print("Training labels for feat 0: \n", feature_dic_0["training_labels"].shape)
+    # print("LS feature for feature_dic_1: \n", feature_dic_1["training_features"]["LS"].shape)
+    # print("Training labels for feat 1: \n", feature_dic_1["training_labels"].shape)
+    # print("LS feature for feature_dic_2: \n", feature_dic_2["training_features"]["LS"].shape)
+    # print("LS feature for feature_dic_3: \n", feature_dic_3["training_features"]["LS"].shape)
+    # print("LS feature for feature_dic_4: \n", feature_dic_4["training_features"]["LS"].shape)
+    # print("MFL feature for feature_dic_0: \n", feature_dic_0["training_features"]["MFL"].shape)
+    # print("MFL feature for feature_dic_1: \n", feature_dic_1["training_features"]["MFL"].shape)
+    # print("MFL feature for feature_dic_2: \n", feature_dic_2["training_features"]["MFL"].shape)
+    # print("MFL feature for feature_dic_3: \n", feature_dic_3["training_features"]["MFL"].shape)
+    # print("MFL feature for feature_dic_4: \n", feature_dic_4["training_features"]["MFL"].shape)
+    # print("MSR feature for feature_dic_0: \n", feature_dic_0["training_features"]["MSR"].shape)
+    # print("MSR feature for feature_dic_1: \n", feature_dic_1["training_features"]["MSR"].shape)
+    # print("MSR feature for feature_dic_2: \n", feature_dic_2["training_features"]["MSR"].shape)
+    # print("MSR feature for feature_dic_3: \n", feature_dic_3["training_features"]["MSR"].shape)
+    # print("MSR feature for feature_dic_4: \n", feature_dic_4["training_features"]["MSR"].shape)
+    # # print("feature_dic_1: ", feature_dic_1)
+    # print("feature_dic_2: ", feature_dic_2)
+    # print("feature_dic_3: ", feature_dic_3)
+    # print("feature_dic_4: ", feature_dic_4)
+
+
+    feature_dic = {
+        'training_features': {},
+        'training_labels': None
+    }
+    feature_dic['training_features']["LS"] = np.concatenate((
+        feature_dic_0['training_features']['LS'],
+        feature_dic_1['training_features']['LS'],
+        feature_dic_2['training_features']['LS'],
+        feature_dic_3['training_features']['LS'],
+        feature_dic_4['training_features']['LS']
+    ))
+
+    #print("LS feature for final feature_dic: \n", feature_dic["training_features"]["LS"].shape)
+    # Concatenate MFL features
+    feature_dic['training_features']["MFL"] = np.concatenate((
+        feature_dic_0['training_features']['MFL'],
+        feature_dic_1['training_features']['MFL'],
+        feature_dic_2['training_features']['MFL'],
+        feature_dic_3['training_features']['MFL'],
+        feature_dic_4['training_features']['MFL']
+    ))
+    #print("MFL feature for final feature_dic: \n", feature_dic["training_features"]["MFL"].shape)
+    # Concatenate MSR features
+    feature_dic['training_features']["MSR"] = np.concatenate((
+        feature_dic_0['training_features']['MSR'],
+        feature_dic_1['training_features']['MSR'],
+        feature_dic_2['training_features']['MSR'],
+        feature_dic_3['training_features']['MSR'],
+        feature_dic_4['training_features']['MSR']
+    ))
+    #print("MSR feature for final feature_dic: \n", feature_dic["training_features"]["MSR"].shape)
+    # Concatenate all labels
+    feature_dic['training_labels'] = np.concatenate((
+        feature_dic_0['training_labels'],
+        feature_dic_1['training_labels'],
+        feature_dic_2['training_labels'],
+        feature_dic_3['training_labels'],
+        feature_dic_4['training_labels']
+    ))
+    #print("All labels for final feature_dic: \n", feature_dic["training_labels"].shape)
+    
+    # print("EMG features: ", feature_dic['training_features'])
+    # feature_dic['training_labels'] = np.hstack([feature_dic_0['training_labels'], feature_dic_1['training_labels'], feature_dic_2['training_labels'], feature_dic_3['training_labels'], feature_dic_4['training_labels']])
+    # print("EMG labels: ", feature_dic['training_labels'])
+    
+
+
+    model = emg_predictor.EMGClassifier("LDA")
+    model.fit(feature_dictionary=feature_dic)
+    model.add_velocity(windows, feature_dic['training_labels'])
+
+
+"""
+    streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3', ecg=False, imu=True, ppg=False, eda=False, emg=False,filtering=True,emg_notch_freq=60)
+    odh = data_handler.OnlineDataHandler(smm)
+    feature_list = feature_extractor.FeatureExtractor().get_feature_groups()['HTD']
+    oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=True)
+    oc.run(True)"
+"""
+
+def get_training_data(folder_location, regex_filters):
+    odh = data_handler.OfflineDataHandler()
+    odh.get_data(folder_location=folder_location, regex_filters=regex_filters)
+    windows, metadata = odh.parse_windows(WINDOW_SIZE,WINDOW_INC)
     fi_emg = filtering.Filter(2000)
     
     standardization_filter = { "name": "standardization" , }
@@ -48,35 +163,19 @@ def prepareemgmodel():
     fi_emg.install_filters(emg_notch_filter)
     fi_emg.install_filters(emg_bandpass_filter)
 
-    
-
-
     fe = feature_extractor.FeatureExtractor()
     # LS4 feature set for EMG
     feature_dic = {}
-    emg_features = fe.extract_feature_group("LS4", emg_windows)
+    emg_features = fe.extract_feature_group("LS4", windows)
     #print("EMG features: ", emg_features)
-    print("EMG feature LS4 shapes: ", emg_features['LS'].shape)
-    print("EMG feature MFL shapes: ", emg_features['MFL'].shape)
-    print("EMG features MSR: ", emg_features['MSR'].shape)
+    # print("EMG feature LS4 shapes: ", emg_features['LS'].shape)
+    # print("EMG feature MFL shapes: ", emg_features['MFL'].shape)
+    # print("EMG features MSR: ", emg_features['MSR'].shape)
 
     
     feature_dic['training_features'] = emg_features
     feature_dic['training_labels'] = metadata['classes']
-
-
-    model = emg_predictor.EMGClassifier("LDA")
-    model.fit(feature_dictionary=feature_dic)
-    model.add_velocity(emg_windows, metadata['classes'])
-
-
-"""
-    streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3', ecg=False, imu=True, ppg=False, eda=False, emg=False,filtering=True,emg_notch_freq=60)
-    odh = data_handler.OnlineDataHandler(smm)
-    feature_list = feature_extractor.FeatureExtractor().get_feature_groups()['HTD']
-    oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=True)
-    oc.run(True)"
-"""
+    return feature_dic , windows
 
 def prepareemgimuppgmodel():
     imu_regex_filters = [

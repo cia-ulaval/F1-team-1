@@ -108,7 +108,10 @@ def prepareemgmodel():
     odh = data_handler.OnlineDataHandler(smm)
     feature_list = feature_extractor.FeatureExtractor().get_feature_groups()['LS4']
     oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=True)
+    
     oc.run(True)
+
+    
 
 
 """

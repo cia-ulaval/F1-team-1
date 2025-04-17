@@ -10,6 +10,8 @@ from os import walk
 import numpy as np
 from libemg.offline_metrics import OfflineMetrics
 
+import socket
+
 
 WINDOW_SIZE = 200 # 40
 WINDOW_INC = 20
@@ -36,6 +38,9 @@ def prepareemgmodel():
     feature_dic_2 , windows_2 = get_training_data(folder_location="data/S" + str("2") + "/", regex_filters= emg_regex_filters)
     feature_dic_3 , windows_3 = get_training_data(folder_location="data/S" + str("3") + "/", regex_filters= emg_regex_filters)
     feature_dic_4 , windows_4 = get_training_data(folder_location="data/S" + str("4") + "/", regex_filters= emg_regex_filters)
+
+    for key , value in feature_dic_0.items():
+        print("EMG features 0 : \n", key , value)
 
     windows = np.concatenate(( windows_0,windows_1,windows_2,windows_3,windows_4))
 
@@ -79,15 +84,22 @@ def prepareemgmodel():
     ))
 
     
-    X , y = (feature_dic['training_features']['LS'][0] , feature_dic['training_features']['MFL'][0] , feature_dic['training_features']['MSR'][0]) , feature_dic['training_labels'][0]
-    print("X: ", X)
-    print("y: ", y)
-    X , y = (feature_dic['training_features']['LS'][24] , feature_dic['training_features']['MFL'][24] , feature_dic['training_features']['MSR'][24]) , feature_dic['training_labels'][24]
-    print("X24: ", X)
-    print("y24: ", y)
-    X , y = (feature_dic['training_features']['LS'][25] , feature_dic['training_features']['MFL'][25] , feature_dic['training_features']['MSR'][25]) , feature_dic['training_labels'][25]
-    print("X25: ", X)
-    print("y25: ", y)
+    # X , y = (feature_dic['training_features']['LS'][0] , feature_dic['training_features']['MFL'][0] , feature_dic['training_features']['MSR'][0]) , feature_dic['training_labels'][0]
+    # print("X: ", X)
+    # print("y: ", y)
+    # X , y = (feature_dic['training_features']['LS'][24] , feature_dic['training_features']['MFL'][24] , feature_dic['training_features']['MSR'][24]) , feature_dic['training_labels'][24]
+    # print("X24: ", X)
+    # print("y24: ", y)
+    # X , y = (feature_dic['training_features']['LS'][25] , feature_dic['training_features']['MFL'][25] , feature_dic['training_features']['MSR'][25]) , feature_dic['training_labels'][25]
+    # print("X25: ", X)
+    # print("y25: ", y)
+
+    # print("EMG features : \n", feature_dic['training_features']['LS'][0]) 
+    # print("EMG features : \n", feature_dic['training_features']['MFL'][0])
+    # print("EMG features : \n", feature_dic['training_features']['MSR'][0])
+
+    for key , value in feature_dic.items():
+        print("EMG features : \n", key , value)
 
     
     
@@ -95,8 +107,9 @@ def prepareemgmodel():
 
 
     model = emg_predictor.EMGClassifier("LDA")
-    model.fit(feature_dictionary=feature_dic)
-    model.add_velocity(windows, feature_dic['training_labels'])
+    model.fit(feature_dictionary=feature_dic_0)
+    model.add_velocity(windows_0, feature_dic_0['training_labels'])
+    
     streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3', 
                                                     ecg=True, 
                                                     imu=True, 
@@ -110,6 +123,13 @@ def prepareemgmodel():
     oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=True)
     
     oc.run(True)
+    sock = socket.socket(socket.AF_INET, socket.SOCKDGRAM)
+    sock.bind(('127.0.0.1', 12346))
+    data,  = sock.recvfrom(1024)
+    data = str(data.decode('utf-8'))
+    if data:
+        input_class = float(data.split(' ')[0])
+        print("Input class: ", input_class)
 
     
 
@@ -135,6 +155,8 @@ def get_training_data(folder_location, regex_filters):
     fi_emg.install_filters(standardization_filter)
     fi_emg.install_filters(emg_notch_filter)
     fi_emg.install_filters(emg_bandpass_filter)
+
+    odh = fi_emg.filter(odh)
 
     fe = feature_extractor.FeatureExtractor()
     # LS4 feature set for EMG

@@ -12,12 +12,16 @@ from libemg.offline_metrics import OfflineMetrics
 
 import socket
 
+from drive import accelerate , brake , steer_left , steer_right , reset_controls
+import vgamepad as vg 
+
+
 
 WINDOW_SIZE = 200 # 40
 WINDOW_INC = 20
 CLASSES = [0, 1, 2 , 3, 4]
 REPS = [0, 1, 2, 3, 4 , 5]
-STAGE = 1
+STAGE = 4 # 0: collect data, 1: prepare model, 2: test band, 3: test model, 4: prepare emg model, 5: prepare emg imu ppg model
 
 def testband():
     streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3',  ecg=True,  imu=True, ppg=True, eda=True, emg=True,filtering=True,emg_notch_freq=60)
@@ -25,6 +29,7 @@ def testband():
     #odh is your data
     odh.visualize(num_samples=10000)
 
+    
 def prepareemgmodel():
 
     emg_regex_filters = [
@@ -39,8 +44,8 @@ def prepareemgmodel():
     feature_dic_3 , windows_3 = get_training_data(folder_location="data/S" + str("3") + "/", regex_filters= emg_regex_filters)
     feature_dic_4 , windows_4 = get_training_data(folder_location="data/S" + str("4") + "/", regex_filters= emg_regex_filters)
 
-    for key , value in feature_dic_0.items():
-        print("EMG features 0 : \n", key , value)
+    # for key , value in feature_dic_0.items():
+    #     print("EMG features 0 : \n", key , value)
 
     windows = np.concatenate(( windows_0,windows_1,windows_2,windows_3,windows_4))
 
@@ -73,6 +78,15 @@ def prepareemgmodel():
         feature_dic_3['training_features']['MSR'],
         feature_dic_4['training_features']['MSR']
     ))
+
+    # Concatenate WAMP features
+    feature_dic['training_features']["WAMP"] = np.concatenate((
+        feature_dic_0['training_features']['WAMP'],
+        feature_dic_1['training_features']['WAMP'],
+        feature_dic_2['training_features']['WAMP'],
+        feature_dic_3['training_features']['WAMP'],
+        feature_dic_4['training_features']['WAMP']
+    ))
     
     # Concatenate all labels
     feature_dic['training_labels'] = np.concatenate((
@@ -83,53 +97,59 @@ def prepareemgmodel():
         feature_dic_4['training_labels']
     ))
 
-    
-    # X , y = (feature_dic['training_features']['LS'][0] , feature_dic['training_features']['MFL'][0] , feature_dic['training_features']['MSR'][0]) , feature_dic['training_labels'][0]
-    # print("X: ", X)
-    # print("y: ", y)
-    # X , y = (feature_dic['training_features']['LS'][24] , feature_dic['training_features']['MFL'][24] , feature_dic['training_features']['MSR'][24]) , feature_dic['training_labels'][24]
-    # print("X24: ", X)
-    # print("y24: ", y)
-    # X , y = (feature_dic['training_features']['LS'][25] , feature_dic['training_features']['MFL'][25] , feature_dic['training_features']['MSR'][25]) , feature_dic['training_labels'][25]
-    # print("X25: ", X)
-    # print("y25: ", y)
-
-    # print("EMG features : \n", feature_dic['training_features']['LS'][0]) 
-    # print("EMG features : \n", feature_dic['training_features']['MFL'][0])
-    # print("EMG features : \n", feature_dic['training_features']['MSR'][0])
-
-    for key , value in feature_dic.items():
-        print("EMG features : \n", key , value)
-
-    
-    
-    
-
 
     model = emg_predictor.EMGClassifier("LDA")
-    model.fit(feature_dictionary=feature_dic_0)
-    model.add_velocity(windows_0, feature_dic_0['training_labels'])
+    model.fit(feature_dictionary=feature_dic)
+    model.add_velocity(windows, feature_dic['training_labels'])
     
     streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3', 
-                                                    ecg=True, 
-                                                    imu=True, 
-                                                    ppg=True, 
-                                                    eda=True, 
+                                                    ecg=False, 
+                                                    imu=False, 
+                                                    ppg=False, 
+                                                    eda=False, 
                                                     emg=True,
                                                     filtering=True,
                                                     emg_notch_freq=60)
     odh = data_handler.OnlineDataHandler(smm)
     feature_list = feature_extractor.FeatureExtractor().get_feature_groups()['LS4']
-    oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=True)
-    
-    oc.run(True)
-    sock = socket.socket(socket.AF_INET, socket.SOCKDGRAM)
-    sock.bind(('127.0.0.1', 12346))
-    data,  = sock.recvfrom(1024)
-    data = str(data.decode('utf-8'))
-    if data:
-        input_class = float(data.split(' ')[0])
-        print("Input class: ", input_class)
+
+    oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=False)
+    import socket
+    UDP_IP = "127.0.0.1"
+    UDP_PORT = 12346
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind((UDP_IP, UDP_PORT))
+
+    # Démarrer le classificateur dans un thread
+    import threading
+    classifier_thread = threading.Thread(target=oc.run, args=(True,))
+    classifier_thread.start()
+
+    print(f"En attente de prédictions sur {UDP_IP}:{UDP_PORT}...")
+
+    while True:
+        data, _ = sock.recvfrom(10)
+        message = data.decode("utf-8").strip()
+        print(f"Message reçu brute: {message}")
+        try:
+            prediction_str, velocity_str = message.split(" ")
+            prediction = int(prediction_str)
+            velocity = float(velocity_str)
+            print(f"Commande reçue: Classe={prediction}, Vitesse={velocity}")
+            #"class_map": {"0": "Hand_Open", "1": "Thumbs_Flexion", "2": "Thumbs_Up", "3": "Wrist_Left_Rotation", "4": "Wrist_Right_Rotation"}
+            if prediction == 0:
+                reset_controls()
+            # if prediction == 1:
+            #     accelerate()
+            # if prediction == 2:
+            #     brake()
+            # if prediction == 3:
+            #     steer_left()
+            # if prediction == 4:
+            #     steer_right()
+
+        except Exception as e:
+            print(f"Erreur: {e}")
 
     
 
@@ -162,14 +182,10 @@ def get_training_data(folder_location, regex_filters):
     # LS4 feature set for EMG
     feature_dic = {}
     emg_features = fe.extract_feature_group("LS4", windows)
-    #print("EMG features: ", emg_features)
-    # print("EMG feature LS4 shapes: ", emg_features['LS'].shape)
-    # print("EMG feature MFL shapes: ", emg_features['MFL'].shape)
-    # print("EMG features MSR: ", emg_features['MSR'].shape)
-
     
     feature_dic['training_features'] = emg_features
     feature_dic['training_labels'] = metadata['classes']
+    
     return feature_dic , windows
 
 def prepareemgimuppgmodel():
@@ -182,8 +198,6 @@ def prepareemgimuppgmodel():
         data_handler.RegexFilter(left_bound = "C_", right_bound="_R_", values = [str(i) for i in REPS], description='reps'),
         data_handler.RegexFilter(left_bound = "_R_", right_bound="_ppg.csv", values = [str(i) for i in CLASSES], description='classes')
     ]
-
-    
 
     odh_imu = data_handler.OfflineDataHandler()
     for i in range(0, 5):
@@ -342,8 +356,12 @@ if __name__ == "__main__":
     if STAGE == 0:
         collectdata()
     if STAGE == 1:
-        prepareemgmodel()
+        preparemodel()
     if STAGE == 2:
         testband()
     if STAGE == 3:
         testmodel()
+    if STAGE == 4:
+        prepareemgmodel()
+    if STAGE == 5:
+        prepareemgimuppgmodel()

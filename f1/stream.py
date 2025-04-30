@@ -102,7 +102,7 @@ def prepareemgmodel():
     model.fit(feature_dictionary=feature_dic)
     model.add_velocity(windows, feature_dic['training_labels'])
     model.add_majority_vote(5)
-    model.add_rejection(windows, feature_dic['training_labels'], 0.7)
+    model.add_rejection(0.7)
 
     
     streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3', 

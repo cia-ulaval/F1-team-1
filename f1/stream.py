@@ -127,7 +127,7 @@ def prepareemgmodel():
     odh = fi_emg.filter(odh)
     feature_list = feature_extractor.FeatureExtractor().get_feature_groups()['LS4']
 
-    oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=False ,velocity=True)
+    oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=False)
     
     import socket
     UDP_IP = "127.0.0.1"

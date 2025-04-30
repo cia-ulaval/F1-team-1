@@ -113,7 +113,8 @@ def prepareemgmodel():
     odh = data_handler.OnlineDataHandler(smm)
     feature_list = feature_extractor.FeatureExtractor().get_feature_groups()['LS4']
 
-    oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=False)
+    oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=False,majority_vote=5, velocity=True)
+    
     import socket
     UDP_IP = "127.0.0.1"
     UDP_PORT = 12346
@@ -128,7 +129,7 @@ def prepareemgmodel():
     print(f"En attente de prédictions sur {UDP_IP}:{UDP_PORT}...")
 
     while True:
-        data, _ = sock.recvfrom(10)
+        data, _ = sock.recvfrom(1024)
         message = data.decode("utf-8").strip()
         print(f"Message reçu brute: {message}")
         try:
@@ -139,10 +140,10 @@ def prepareemgmodel():
             #"class_map": {"0": "Hand_Open", "1": "Thumbs_Flexion", "2": "Thumbs_Up", "3": "Wrist_Left_Rotation", "4": "Wrist_Right_Rotation"}
             if prediction == 0:
                 reset_controls()
-            # if prediction == 1:
-            #     accelerate()
-            # if prediction == 2:
-            #     brake()
+            if prediction == 1:
+                accelerate()
+            if prediction == 2:
+                brake()
             # if prediction == 3:
             #     steer_left()
             # if prediction == 4:

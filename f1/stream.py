@@ -101,7 +101,7 @@ def prepareemgmodel():
     model = emg_predictor.EMGClassifier("LDA")
     model.fit(feature_dictionary=feature_dic)
     model.add_velocity(windows, feature_dic['training_labels'])
-    model.add_majority_vote(windows, feature_dic['training_labels'], 5)
+    model.add_majority_vote(5)
     model.add_rejection(windows, feature_dic['training_labels'], 0.7)
 
     
@@ -114,9 +114,20 @@ def prepareemgmodel():
                                                     filtering=True,
                                                     emg_notch_freq=60)
     odh = data_handler.OnlineDataHandler(smm)
+    fi_emg = filtering.Filter(2000)
+    
+    standardization_filter = { "name": "standardization" , }
+    emg_notch_filter = { "name": "notch", "cutoff": 60, "bandwidth": 3}
+    emg_bandpass_filter = { "name":"bandpass", "cutoff": [20, 450], "order": 4}
+
+    fi_emg.install_filters(standardization_filter)
+    fi_emg.install_filters(emg_notch_filter)
+    fi_emg.install_filters(emg_bandpass_filter)
+
+    odh = fi_emg.filter(odh)
     feature_list = feature_extractor.FeatureExtractor().get_feature_groups()['LS4']
 
-    oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=False,majority_vote=5, velocity=True)
+    oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=False ,velocity=True)
     
     import socket
     UDP_IP = "127.0.0.1"
@@ -147,24 +158,13 @@ def prepareemgmodel():
                 accelerate()
             if prediction == 2:
                 brake()
-            # if prediction == 3:
-            #     steer_left()
-            # if prediction == 4:
-            #     steer_right()
+            if prediction == 3:
+                steer_left()
+            if prediction == 4:
+                steer_right()
 
         except Exception as e:
             print(f"Erreur: {e}")
-
-    
-
-
-"""
-    streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3', ecg=False, imu=True, ppg=False, eda=False, emg=False,filtering=True,emg_notch_freq=60)
-    odh = data_handler.OnlineDataHandler(smm)
-    feature_list = feature_extractor.FeatureExtractor().get_feature_groups()['HTD']
-    oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=True)
-    oc.run(True)"
-"""
 
 def get_training_data(folder_location, regex_filters):
     odh = data_handler.OfflineDataHandler()

@@ -42,12 +42,12 @@ def prepareemgmodel():
     feature_dic_1 , windows_1 = get_training_data(folder_location="data/S" + str("1") + "/", regex_filters= emg_regex_filters)
     feature_dic_2 , windows_2 = get_training_data(folder_location="data/S" + str("2") + "/", regex_filters= emg_regex_filters)
     feature_dic_3 , windows_3 = get_training_data(folder_location="data/S" + str("3") + "/", regex_filters= emg_regex_filters)
-    feature_dic_4 , windows_4 = get_training_data(folder_location="data/S" + str("4") + "/", regex_filters= emg_regex_filters)
+    #feature_dic_4 , windows_4 = get_training_data(folder_location="data/S" + str("4") + "/", regex_filters= emg_regex_filters)
 
     # for key , value in feature_dic_0.items():
     #     print("EMG features 0 : \n", key , value)
 
-    windows = np.concatenate(( windows_0,windows_1,windows_2,windows_3,windows_4))
+    windows = np.concatenate(( windows_0,windows_1,windows_2,windows_3))
 
     feature_dic = {
         'training_features': {},
@@ -58,8 +58,11 @@ def prepareemgmodel():
         feature_dic_1['training_features']['LS'],
         feature_dic_2['training_features']['LS'],
         feature_dic_3['training_features']['LS'],
-        feature_dic_4['training_features']['LS']
+        #feature_dic_4['training_features']['LS']
     ))
+    print("LS features : ", feature_dic['training_features']["LS"])
+    
+    
 
     # Concatenate MFL features
     feature_dic['training_features']["MFL"] = np.concatenate((
@@ -67,7 +70,7 @@ def prepareemgmodel():
         feature_dic_1['training_features']['MFL'],
         feature_dic_2['training_features']['MFL'],
         feature_dic_3['training_features']['MFL'],
-        feature_dic_4['training_features']['MFL']
+        #feature_dic_4['training_features']['MFL']
     ))
     
     # Concatenate MSR features
@@ -76,7 +79,7 @@ def prepareemgmodel():
         feature_dic_1['training_features']['MSR'],
         feature_dic_2['training_features']['MSR'],
         feature_dic_3['training_features']['MSR'],
-        feature_dic_4['training_features']['MSR']
+        #feature_dic_4['training_features']['MSR']
     ))
 
     # Concatenate WAMP features
@@ -85,7 +88,7 @@ def prepareemgmodel():
         feature_dic_1['training_features']['WAMP'],
         feature_dic_2['training_features']['WAMP'],
         feature_dic_3['training_features']['WAMP'],
-        feature_dic_4['training_features']['WAMP']
+        #feature_dic_4['training_features']['WAMP']
     ))
     
     # Concatenate all labels
@@ -94,8 +97,52 @@ def prepareemgmodel():
         feature_dic_1['training_labels'],
         feature_dic_2['training_labels'],
         feature_dic_3['training_labels'],
-        feature_dic_4['training_labels']
+        #feature_dic_4['training_labels']
     ))
+
+    # Après avoir concaténé les labels :
+    print("Distribution des classes :", np.unique(feature_dic['training_labels'], return_counts=True))
+
+    print("EMG features shapes: ", feature_dic['training_features']['LS'].shape)
+    print("EMG features shapes: ", feature_dic['training_features']['MFL'].shape)
+    print("EMG features shapes: ", feature_dic['training_features']['MSR'].shape)
+    print("EMG features shapes: ", feature_dic['training_features']['WAMP'].shape)
+
+    print("EMG labels shapes: ", feature_dic['training_labels'].shape)
+
+    print("offline model: ")
+
+    import pandas as pd
+
+    X_data = []
+    y_data = []
+
+    for i in range(feature_dic['training_labels'].shape[0]):
+        X = [
+            feature_dic['training_features']['LS'][i][0],
+            feature_dic['training_features']['MFL'][i][0],
+            feature_dic['training_features']['MSR'][i][0],
+            feature_dic['training_features']['WAMP'][i][0]
+        ]
+        y = feature_dic['training_labels'][i]
+        
+        X_data.append(X)
+        y_data.append(y)
+
+    # Créer le DataFrame
+    df = pd.DataFrame(X_data, columns=['LS', 'MFL', 'MSR', 'WAMP'])
+    df['Class'] = y_data
+
+    file_path = 'training_features_no_filter_data.csv'
+
+    try:
+        if os.path.exists(file_path):
+            raise FileExistsError(f"Le fichier '{file_path}' existe déjà.")
+        else:
+            df.to_csv(file_path, index=False)
+            print(f"Fichier '{file_path}' créé avec succès.")
+    except FileExistsError as e:
+        print(e)
 
 
     model = emg_predictor.EMGClassifier("LDA")
@@ -105,66 +152,70 @@ def prepareemgmodel():
     model.add_rejection(0.7)
 
     
-    streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3', 
-                                                    ecg=False, 
-                                                    imu=False, 
-                                                    ppg=False, 
-                                                    eda=False, 
-                                                    emg=True,
-                                                    filtering=True,
-                                                    emg_notch_freq=60)
-    odh = data_handler.OnlineDataHandler(smm)
-    fi_emg = filtering.Filter(2000)
+    streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3', ecg=False, imu=False, ppg=False, eda=False, emg=True,filtering=True,emg_notch_freq=60)
+
+    if smm is None:
+        raise ValueError("Erreur d'initialisation du Shared Memory Manager (smm).")
     
-    standardization_filter = { "name": "standardization" , }
-    emg_notch_filter = { "name": "notch", "cutoff": 60, "bandwidth": 3}
-    emg_bandpass_filter = { "name":"bandpass", "cutoff": [20, 450], "order": 4}
+    odh = data_handler.OnlineDataHandler(smm)
 
-    fi_emg.install_filters(standardization_filter)
-    fi_emg.install_filters(emg_notch_filter)
-    fi_emg.install_filters(emg_bandpass_filter)
+   
+    odh.analyze_hardware(60)
+    
+    
+    #standardization_filter = { "name": "standardization" , }
+    # emg_notch_filter = { "name": "notch", "cutoff": 60, "bandwidth": 3}
+    # emg_bandpass_filter = { "name":"bandpass", "cutoff": [20, 450], "order": 4}
 
-    odh = fi_emg.filter(odh)
+    fi_emg_online = filtering.Filter(2000)  # Fréquence d'échantillonnage
+    #fi_emg_online.install_filters(standardization_filter)
+    # fi_emg_online.install_filters(emg_notch_filter)
+    # fi_emg_online.install_filters(emg_bandpass_filter)
+
+    #odh.install_filter(fi_emg_online)
+
+   
     feature_list = feature_extractor.FeatureExtractor().get_feature_groups()['LS4']
 
     oc = emg_predictor.OnlineEMGClassifier(model, WINDOW_SIZE, WINDOW_INC, odh, feature_list, std_out=False)
     
-    import socket
-    UDP_IP = "127.0.0.1"
-    UDP_PORT = 12346
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind((UDP_IP, UDP_PORT))
+    # import socket
+    # UDP_IP = "127.0.0.1"
+    # UDP_PORT = 12346
+    # sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # sock.bind((UDP_IP, UDP_PORT))
 
-    # Démarrer le classificateur dans un thread
-    import threading
-    classifier_thread = threading.Thread(target=oc.run, args=(True,))
-    classifier_thread.start()
+    # # Démarrer le classificateur dans un thread
+    # import threading
+    # classifier_thread = threading.Thread(target=oc.run, args=(True,))
+    # classifier_thread.start()
 
-    print(f"En attente de prédictions sur {UDP_IP}:{UDP_PORT}...")
+    # print(f"En attente de prédictions sur {UDP_IP}:{UDP_PORT}...")
 
-    while True:
-        data, _ = sock.recvfrom(1024)
-        message = data.decode("utf-8").strip()
-        print(f"Message reçu brute: {message}")
-        try:
-            prediction_str, velocity_str = message.split(" ")
-            prediction = int(prediction_str)
-            velocity = float(velocity_str)
-            print(f"Commande reçue: Classe={prediction}, Vitesse={velocity}")
-            #"class_map": {"0": "Hand_Open", "1": "Thumbs_Flexion", "2": "Thumbs_Up", "3": "Wrist_Left_Rotation", "4": "Wrist_Right_Rotation"}
-            if prediction == 0:
-                reset_controls()
-            if prediction == 1:
-                accelerate()
-            if prediction == 2:
-                brake()
-            if prediction == 3:
-                steer_left()
-            if prediction == 4:
-                steer_right()
+    # while True:
+    #     data, _ = sock.recvfrom(1024)
+    #     message = data.decode("utf-8").strip()
+    #     print(f"Message reçu brute: {message}")
+    #     try:
+    #         prediction_str, velocity_str = message.split(" ")
+    #         prediction = int(prediction_str)
+    #         velocity = float(velocity_str)
+    #         print(f"Commande reçue: Classe={prediction}, Vitesse={velocity}")
+    #         #"class_map": {"0": "Hand_Open", "1": "Thumbs_Flexion", "2": "Thumbs_Up", "3": "Wrist_Left_Rotation", "4": "Wrist_Right_Rotation"}
+    #         if prediction == 0:
+    #             reset_controls()
+    #         if prediction == 1:
+    #             accelerate()
+    #         if prediction == 2:
+    #             brake()
+    #         if prediction == 3:
+    #             steer_right()
+    #         if prediction == 4:
+    #             steer_left()
+                
 
-        except Exception as e:
-            print(f"Erreur: {e}")
+    #     except Exception as e:
+    #         print(f"Erreur: {e}")
 
 def get_training_data(folder_location, regex_filters):
     odh = data_handler.OfflineDataHandler()
@@ -172,15 +223,15 @@ def get_training_data(folder_location, regex_filters):
     windows, metadata = odh.parse_windows(WINDOW_SIZE,WINDOW_INC)
     fi_emg = filtering.Filter(2000)
     
-    standardization_filter = { "name": "standardization" , }
-    emg_notch_filter = { "name": "notch", "cutoff": 60, "bandwidth": 3}
-    emg_bandpass_filter = { "name":"bandpass", "cutoff": [20, 450], "order": 4}
+    #standardization_filter = { "name": "standardization"}
+    # emg_notch_filter = { "name": "notch", "cutoff": 60, "bandwidth": 3}
+    # emg_bandpass_filter = { "name":"bandpass", "cutoff": [20, 450], "order": 4}
 
-    fi_emg.install_filters(standardization_filter)
-    fi_emg.install_filters(emg_notch_filter)
-    fi_emg.install_filters(emg_bandpass_filter)
+    #fi_emg.install_filters(standardization_filter)
+    # fi_emg.install_filters(emg_notch_filter)
+    # fi_emg.install_filters(emg_bandpass_filter)
 
-    odh = fi_emg.filter(odh)
+    #odh = fi_emg.filter(odh)
 
     fe = feature_extractor.FeatureExtractor()
     # LS4 feature set for EMG

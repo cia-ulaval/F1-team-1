@@ -396,7 +396,7 @@ def collectdata():
     
     args = {
         "media_folder": "images/",
-        "data_folder": "new_data/S" + str("1") + "/",
+        "data_folder": "new_data/S" + str("2") + "/",
         "num_reps": 6,
         "rep_time": 5,
         "rest_time": 3,

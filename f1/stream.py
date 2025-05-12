@@ -21,7 +21,7 @@ WINDOW_SIZE = 200 # 40
 WINDOW_INC = 20
 CLASSES = [0, 1, 2 , 3, 4]
 REPS = [0, 1, 2, 3, 4 , 5]
-STAGE = 4 # 0: collect data, 1: prepare model, 2: test band, 3: test model, 4: prepare emg model, 5: prepare emg imu ppg model
+STAGE = 0 # 0: collect data, 1: prepare model, 2: test band, 3: test model, 4: prepare emg model, 5: prepare emg imu ppg model
 
 def testband():
     streamer, smm = streamers.sifi_biopoint_streamer(name='BioPoint_v1_3',  ecg=True,  imu=True, ppg=True, eda=True, emg=True,filtering=True,emg_notch_freq=60)
@@ -323,7 +323,7 @@ def testmodel():
 class CustomGui(gui.GUI):
     def __init__(self, 
                  online_data_handler,
-                 args={'media_folder': 'images/', 'data_folder':'data/', 'num_reps': 3, 'rep_time': 5, 'rest_time': 3, 'auto_advance': True},
+                 args={'media_folder': 'images/', 'data_folder':'new_data/', 'num_reps': 3, 'rep_time': 5, 'rest_time': 3, 'auto_advance': True},
                  width=1920,
                  height=1080,
                  debug=False,
@@ -396,7 +396,7 @@ def collectdata():
     
     args = {
         "media_folder": "images/",
-        "data_folder": "data/S" + str("4") + "/",
+        "data_folder": "new_data/S" + str("1") + "/",
         "num_reps": 6,
         "rep_time": 5,
         "rest_time": 3,
